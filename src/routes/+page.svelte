@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { degreesToRadians } from '$lib/angles';
 	import { onMount } from 'svelte';
+
+	import { degreesToRadians } from '$lib/angles';
 
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D | null = null;
