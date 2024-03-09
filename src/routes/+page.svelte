@@ -1,7 +1,12 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+
 	import { onMount } from 'svelte';
 
+	import { goto } from '$app/navigation';
 	import { degreesToRadians } from '$lib/angles';
+
+	export let data: PageData;
 
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D | null = null;
@@ -18,19 +23,21 @@
 		canvas.height = window.innerHeight;
 
 		// randomise initial values
-		randomise();
+		if (data.randomise) {
+			randomise();
+		}
 
 		// start animation
 		requestAnimationFrame(frame);
 	});
 
-	let numPoints = 5;
-	let length = 100;
+	let numPoints = data.numPoints;
+	let length = data.length;
 	const points: [number, number][] = Array(numPoints)
 		.fill(null)
 		.map(() => [0, 0]);
 	const angles = Array(numPoints).fill(0);
-	const angleSpeeds = [1, 2, 3, 4];
+	const angleSpeeds = data.angleSpeeds;
 
 	$: if (numPoints - 1 > angleSpeeds.length) {
 		angleSpeeds.push(1);
@@ -39,14 +46,14 @@
 		points.push([0, 0]);
 	}
 
-	let draw = true;
-	let showLines = true;
-	let showPoints = true;
+	let draw = data.draw;
+	let showLines = data.showLines;
+	let showPoints = data.showPoints;
 
 	let pointColorHue = 0;
 	$: pointColorString = `hsl(${pointColorHue}, 100%, 50%)`;
 
-	let pointSize = 5;
+	let pointSize = data.pointSize;
 
 	function drawPoint(x: number, y: number) {
 		if (!ctx) {
@@ -167,7 +174,26 @@
 
 <canvas bind:this={canvas}></canvas>
 
-<div class="overlay controls" on:input={reset}>
+<div
+	class="overlay controls"
+	on:input={() => {
+		// save new state in URL
+		goto(
+			'?' +
+				new URLSearchParams({
+					numPoints: numPoints.toString(),
+					length: length.toString(),
+					angleSpeeds: angleSpeeds.toSpliced(numPoints - 1).join(','),
+					draw: draw ? '1' : '0',
+					showLines: showLines ? '1' : '0',
+					showPoints: showPoints ? '1' : '0',
+					pointSize: pointSize.toString()
+				}).toString()
+		);
+
+		reset();
+	}}
+>
 	<label for="num-points"># of points</label>
 	<input type="range" id="num-points" min={1} max={10} step={1} bind:value={numPoints} />
 	<input type="number" min={1} bind:value={numPoints} />
