@@ -245,6 +245,25 @@
 	<button on:click={randomise}>Randomise</button>
 
 	<button on:click={reset}>Reset</button>
+
+	<button
+		on:click={async (e) => {
+			const url = location.href;
+
+			try {
+				await navigator.share();
+			} catch (err) {
+				console.error('Error sharing:', err);
+				navigator.clipboard.writeText(url);
+
+				const btn = e.currentTarget;
+				btn.textContent = 'Copied!';
+				setTimeout(() => {
+					btn.textContent = 'Share';
+				}, 2000);
+			}
+		}}>Share</button
+	>
 </div>
 
 <div class="overlay data">
