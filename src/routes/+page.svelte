@@ -251,7 +251,10 @@
 			const url = location.href;
 
 			try {
-				await navigator.share();
+				await navigator.share({
+					title: 'Pendulum art',
+					url
+				});
 			} catch (err) {
 				console.error('Error sharing:', err);
 				navigator.clipboard.writeText(url);
