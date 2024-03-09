@@ -296,6 +296,18 @@
 		display: block;
 	}
 
+	@media (max-width: 600px) {
+		.overlay {
+			left: 8px;
+			right: 8px;
+
+			&.data {
+				top: unset;
+				bottom: 8px;
+			}
+		}
+	}
+
 	.overlay {
 		position: absolute;
 		top: 8px;
@@ -308,8 +320,8 @@
 		display: grid;
 		grid-template-columns: auto auto auto;
 		align-items: center;
+		justify-content: space-between;
 		gap: 8px;
-		width: max-content;
 		text-align: center;
 
 		label {
@@ -338,6 +350,8 @@
 		right: 8px;
 
 		table {
+			margin: auto;
+
 			&,
 			tr,
 			td,
