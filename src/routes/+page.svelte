@@ -155,10 +155,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Pendulum art</title>
-</svelte:head>
-
 <svelte:window
 	on:resize={() => {
 		if (canvas) {
