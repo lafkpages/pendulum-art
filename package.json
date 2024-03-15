@@ -1,5 +1,6 @@
 {
 	"name": "@luisafk/pendulum-art",
+	"description": "Generates cool shapes using pendulums and math.",
 	"version": "1.0.0",
 	"author": {
 		"name": "LuisAFK",

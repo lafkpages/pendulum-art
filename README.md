@@ -1,3 +1,3 @@
 # Pendulum art
 
-I made this for art class.
+Generates cool shapes using pendulums and math.
