@@ -1,12 +1,9 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-
 	import { onMount } from 'svelte';
 
-	import { goto } from '$app/navigation';
-	import { degreesToRadians } from '$lib/angles';
+	import { queryParam, ssp } from 'sveltekit-search-params';
 
-	export let data: PageData;
+	import { degreesToRadians } from '$lib/angles';
 
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D | null = null;
@@ -22,60 +19,55 @@
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 
-		// randomise initial values
-		if (data.randomise) {
-			randomise();
-		}
-
 		// start animation
 		requestAnimationFrame(frame);
 	});
 
-	let numPoints = data.numPoints;
-	let length = data.length;
-	const points: [number, number][] = Array(numPoints)
+	const numPoints = queryParam('numPoints', ssp.number(5));
+	const length = queryParam('length', ssp.number(100));
+	const points: [number, number][] = Array($numPoints)
 		.fill(null)
 		.map(() => [0, 0]);
-	const angles = Array(numPoints).fill(0);
-	const angleSpeeds = data.angleSpeeds;
+	const angles: number[] = Array($numPoints || 0).fill(0);
+	const angleSpeeds = queryParam('angleSpeeds', ssp.array([1, 2, 3, 4]));
 
-	$: if (numPoints - 1 > angleSpeeds.length) {
-		angleSpeeds.push(1);
+	$: if ($numPoints && $angleSpeeds && $numPoints - 1 > $angleSpeeds.length) {
+		$angleSpeeds.push(1);
 	}
-	$: if (numPoints - 1 > points.length) {
+	$: if ($numPoints && $numPoints - 1 > points.length) {
 		points.push([0, 0]);
 	}
 
-	let draw = data.draw;
-	let showLines = data.showLines;
-	let showPoints = data.showPoints;
+	const draw = queryParam('draw', ssp.boolean(true));
+	const showLines = queryParam('showLines', ssp.boolean(true));
+	const showPoints = queryParam('showPoints', ssp.boolean(true));
 
 	let pointColorHue = 0;
 	$: pointColorString = `hsl(${pointColorHue}, 100%, 50%)`;
 
-	let pointSize = data.pointSize;
+	const pointSize = queryParam('pointSize', ssp.number(5));
 
 	function drawPoint(x: number, y: number) {
 		if (!ctx) {
 			return;
 		}
 
-		if (!showPoints) {
+		if (!$showPoints || !$pointSize) {
 			return;
 		}
 
 		ctx.fillStyle = pointColorString;
-		ctx.ellipse(x, y, pointSize, pointSize, 0, 0, Math.PI * 2);
+		ctx.ellipse(x, y, $pointSize, $pointSize, 0, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.closePath();
 	}
 
 	function frame() {
-		if (!canvas || !ctx) {
+		if (!canvas || !ctx || !$numPoints || !$length || !$angleSpeeds) {
 			return;
 		}
 
-		if (!draw) {
+		if (!$draw) {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 		}
 		ctx.save();
@@ -88,17 +80,17 @@
 		drawPoint(0, 0);
 
 		// points 1 and above
-		for (let i = 1; i < numPoints; i++) {
+		for (let i = 1; i < $numPoints; i++) {
 			if (!points[i]) {
 				continue;
 			}
 
 			const lastI = i - 1;
 
-			points[i][0] = points[lastI][0] + Math.cos(angles[lastI]) * length;
-			points[i][1] = points[lastI][1] + Math.sin(angles[lastI]) * length;
+			points[i][0] = points[lastI][0] + Math.cos(angles[lastI]) * $length;
+			points[i][1] = points[lastI][1] + Math.sin(angles[lastI]) * $length;
 
-			if (showLines) {
+			if ($showLines) {
 				ctx.strokeStyle = 'black';
 				ctx.beginPath();
 				ctx.moveTo(points[lastI][0], points[lastI][1]);
@@ -109,7 +101,7 @@
 
 			drawPoint(points[i][0], points[i][1]);
 
-			angles[lastI] += degreesToRadians(angleSpeeds[lastI]);
+			angles[lastI] += degreesToRadians($angleSpeeds[lastI]);
 		}
 
 		pointColorHue++;
@@ -133,29 +125,33 @@
 	function randomise() {
 		reset();
 
-		numPoints = Math.round(Math.random() * 8) + 2;
-		length = Math.round(Math.random() * 100) + 1;
+		$numPoints = Math.round(Math.random() * 8) + 2;
+		$length = Math.round(Math.random() * 100) + 1;
 
-		for (let i = 0; i < numPoints - 1; i++) {
-			angleSpeeds[i] = Math.floor(Math.random() * 20) - 10;
+		if (!$angleSpeeds) {
+			$angleSpeeds = [];
 		}
 
-		draw = Math.random() > 0.5;
+		for (let i = 0; i < $numPoints - 1; i++) {
+			$angleSpeeds[i] = Math.floor(Math.random() * 20) - 10;
+		}
+
+		$draw = Math.random() > 0.5;
 
 		// either show lines, points or both, but not neither
 		const show = Math.floor(Math.random() * 3);
 		if (show === 0) {
-			showLines = true;
-			showPoints = false;
+			$showLines = true;
+			$showPoints = false;
 		} else if (show === 1) {
-			showLines = false;
-			showPoints = true;
+			$showLines = false;
+			$showPoints = true;
 		} else {
-			showLines = true;
-			showPoints = true;
+			$showLines = true;
+			$showPoints = true;
 		}
 
-		pointSize = Math.round(Math.random() * 20) + 1;
+		$pointSize = Math.round(Math.random() * 20) + 1;
 	}
 </script>
 
@@ -174,73 +170,61 @@
 
 <canvas bind:this={canvas}></canvas>
 
-<div
-	class="overlay controls"
-	on:input={() => {
-		// save new state in URL
-		goto(
-			'?' +
-				new URLSearchParams({
-					numPoints: numPoints.toString(),
-					length: length.toString(),
-					angleSpeeds: angleSpeeds.toSpliced(numPoints - 1).join(','),
-					draw: draw ? '1' : '0',
-					showLines: showLines ? '1' : '0',
-					showPoints: showPoints ? '1' : '0',
-					pointSize: pointSize.toString()
-				}).toString()
-		);
-
-		reset();
-	}}
->
+<div class="overlay controls" on:input={reset}>
 	<label for="num-points"># of points</label>
-	<input type="range" id="num-points" min={1} max={10} step={1} bind:value={numPoints} />
-	<input type="number" min={1} bind:value={numPoints} />
+	<input type="range" id="num-points" min={1} max={10} step={1} bind:value={$numPoints} />
+	<input type="number" min={1} bind:value={$numPoints} />
 
 	<label for="length">Pendulum length</label>
-	<input type="range" id="length" min={1} max={1000} step={1} bind:value={length} />
-	<input type="number" bind:value={length} />
+	<input type="range" id="length" min={1} max={1000} step={1} bind:value={$length} />
+	<input type="number" bind:value={$length} />
 
-	{#each { length: numPoints - 1 } as _, i}
-		<label for="angle-speed-{i}">Angle speed {i}</label>
-		<input
-			type="range"
-			id="angle-speed-{i}"
-			min={-10}
-			max={10}
-			step={1}
-			value={angleSpeeds[i]}
-			on:input={(e) => {
-				angleSpeeds[i] = parseFloat(e.currentTarget.value);
-			}}
-		/>
-		<input
-			type="number"
-			id="angle-speed-{i}"
-			step={1}
-			value={angleSpeeds[i]}
-			on:input={(e) => {
-				angleSpeeds[i] = parseFloat(e.currentTarget.value);
-			}}
-		/>
-	{/each}
+	{#if $numPoints && $angleSpeeds}
+		{#each { length: $numPoints - 1 } as _, i}
+			<label for="angle-speed-{i}">Angle speed {i}</label>
+			<input
+				type="range"
+				id="angle-speed-{i}"
+				min={-10}
+				max={10}
+				step={1}
+				value={$angleSpeeds[i]}
+				on:input={(e) => {
+					if (!$angleSpeeds) {
+						$angleSpeeds = [];
+					}
+					$angleSpeeds[i] = parseFloat(e.currentTarget.value);
+				}}
+			/>
+			<input
+				type="number"
+				id="angle-speed-{i}"
+				step={1}
+				value={$angleSpeeds[i]}
+				on:input={(e) => {
+					if (!$angleSpeeds) {
+						$angleSpeeds = [];
+					}
+					$angleSpeeds[i] = parseFloat(e.currentTarget.value);
+				}}
+			/>
+		{/each}{/if}
 
 	<label for="draw">Draw</label>
-	<input type="checkbox" id="draw" bind:checked={draw} />
-	<span>{draw}</span>
+	<input type="checkbox" id="draw" bind:checked={$draw} />
+	<span>{$draw}</span>
 
 	<label for="show-lines">Show lines</label>
-	<input type="checkbox" id="show-lines" bind:checked={showLines} />
-	<span>{showLines}</span>
+	<input type="checkbox" id="show-lines" bind:checked={$showLines} />
+	<span>{$showLines}</span>
 
 	<label for="show-points">Show points</label>
-	<input type="checkbox" id="show-points" bind:checked={showPoints} />
-	<span>{showPoints}</span>
+	<input type="checkbox" id="show-points" bind:checked={$showPoints} />
+	<span>{$showPoints}</span>
 
 	<label for="point-size">Point size</label>
-	<input type="range" id="point-size" min={1} max={20} step={1} bind:value={pointSize} />
-	<input type="number" bind:value={pointSize} />
+	<input type="range" id="point-size" min={1} max={20} step={1} bind:value={$pointSize} />
+	<input type="number" bind:value={$pointSize} />
 
 	<button on:click={randomise}>Randomise</button>
 
@@ -269,28 +253,30 @@
 	>
 </div>
 
-<div class="overlay data">
-	<table>
-		<thead>
-			<tr>
-				<th>Point</th>
-				<th>X</th>
-				<th>Y</th>
-				<th>&theta;</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each { length: numPoints } as _, i}
+{#if $numPoints}
+	<div class="overlay data">
+		<table>
+			<thead>
 				<tr>
-					<td>{i + 1}</td>
-					<td>{points[i]?.[0].toFixed(2)}</td>
-					<td>{points[i]?.[1].toFixed(2)}</td>
-					<td>{i < numPoints - 1 ? angles[i]?.toFixed(2) : 'N/A'}</td>
+					<th>Point</th>
+					<th>X</th>
+					<th>Y</th>
+					<th>&theta;</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+			</thead>
+			<tbody>
+				{#each { length: $numPoints } as _, i}
+					<tr>
+						<td>{i + 1}</td>
+						<td>{points[i]?.[0].toFixed(2)}</td>
+						<td>{points[i]?.[1].toFixed(2)}</td>
+						<td>{i < $numPoints - 1 ? angles[i]?.toFixed(2) : 'N/A'}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+{/if}
 
 <style lang="scss">
 	canvas {
