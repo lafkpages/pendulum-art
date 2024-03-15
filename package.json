@@ -9,7 +9,8 @@
 		"dev": "bun run --bun vite dev",
 		"build": "bun run --bun vite build",
 		"check": "bun run --bun svelte-kit sync && bun run --bun svelte-check --tsconfig ./tsconfig.json",
-		"format": "bun run --bun prettier --write ."
+		"format": "bun run --bun prettier --write .",
+		"postinstall": "bun run --bun prettier --write package.json"
 	},
 	"devDependencies": {
 		"@ianvs/prettier-plugin-sort-imports": "^4.1.1",
