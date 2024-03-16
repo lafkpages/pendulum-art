@@ -11,7 +11,8 @@ const config = {
 			directives: {
 				'default-src': ['none'],
 				'img-src': ['self'],
-				'script-src': ['https://va.vercel-scripts.com']
+				'script-src': ['self', 'https://va.vercel-scripts.com'],
+				'style-src': ['self']
 			}
 		}
 	}
