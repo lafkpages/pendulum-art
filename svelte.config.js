@@ -6,7 +6,14 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		csp: {
+			directives: {
+				'default-src': ['none'],
+				'img-src': ['self'],
+				'script-src': ['https://va.vercel-scripts.com']
+			}
+		}
 	}
 };
 
